@@ -1,0 +1,42 @@
+tag = {
+    ( "feat"
+    | "fix"
+    | "refactor"
+    | "perf"
+    | "style"
+    | "test"
+    | "build"
+    | "ops"
+    | "docs"
+    | "chore"
+    | "merge"
+    | "revert"
+    )
+}
+
+scope = { (!"(" ~ !")" ~ ANY)+ }
+
+breaking_change = { "!" }
+
+subject = { (!empty_separator_line ~ ANY)+ }
+
+title = {
+    tag
+    ~ ("(" ~ scope ~ ")")?
+    ~ (breaking_change)?
+    ~ ": "
+    ~ subject
+}
+
+body = { (!empty_separator_line ~ ANY)+ }
+
+footer = { (!empty_separator_line ~ ANY)+ }
+
+message = {
+    title{, 50} ~
+    (empty_separator_line ~ body)? ~
+    (empty_separator_line ~ footer)?
+}
+
+main = _{ SOI ~ message ~ EOI }
+empty_separator_line = _{ NEWLINE ~ NEWLINE }
