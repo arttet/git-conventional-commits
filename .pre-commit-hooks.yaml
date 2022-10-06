@@ -1,0 +1,6 @@
+- id: git-conventional-commits
+  name: git-conventional-commits
+  description: Validate commit messages
+  entry: git-conventional-commits
+  stages: [commit-msg]
+  language: rust
