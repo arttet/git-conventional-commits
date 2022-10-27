@@ -1,4 +1,3 @@
-
 ################################################################################
 
 .PHONY: help
@@ -6,13 +5,12 @@ help:	## Show this help
 	@fgrep -h "## " $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
 
 .PHONY: build
-build:	## Compile the current package and all of its dependencies with timings
+build:	## Run cargo build
 	cargo build --timings
 
 .PHONY: test
-test:	## Run tests
+test:	## Run cargo test
 	cargo test --tests --all-features
-
 
 .PHONY: check
 check:	## Check Rust code
@@ -29,6 +27,12 @@ cover:	##  Build code coverage
 clean:	## Remove generated artifacts
 	find . -name "*.profraw" -type f -delete
 	find . -name "*.profdata" -type f -delete
+
+################################################################################
+
+.PHONY: image
+image:	##  Build the Docker image
+	docker build . --file Dockerfile --tag git-conventional-commits:dev
 
 ################################################################################
 
