@@ -64,7 +64,7 @@ jobs:
       - name: Install clippy-sarif
         uses: actions-rs/install@v0.1
         with:
-          crate: sarif-fmt
+          crate: clippy-sarif
           version: latest
           use-tool-cache: true
 
@@ -89,9 +89,6 @@ jobs:
           --all-features
           --message-format=json | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
         continue-on-error: true
-
-      - name: DEBUG
-        run: cat rust-clippy-results.sarif
 
       - name: Upload analysis results to GitHub
         uses: github/codeql-action/upload-sarif@v2
