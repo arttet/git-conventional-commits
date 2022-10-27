@@ -37,21 +37,22 @@ commit_preprocessors = [
 ]
 
 commit_parsers = [
-    { message = "^feat", group = "Features"},
-    { message = "^fix", group = "Bug Fixes"},
-    { message = "^doc", group = "Documentation"},
-    { message = "^perf", group = "Performance"},
-    { message = "^refactor", group = "Refactor"},
-    { message = "^style", group = "Styling"},
-    { message = "^test", group = "Testing"},
+    { message = "^feat", group = "<!-- 0 -->:rocket: New Features"},
+    { message = "^fix", group = "<!-- 1 -->:bug: Bug Fixes"},
+    { message = "^perf", group = "<!-- 2 -->:zap: Performance"},
+    { message = "^doc", group = "<!-- 3 -->:notebook: Documentation"},
+    { message = "^refactor", group = "<!-- 4 -->:hammer_and_pick: Refactor"},
+    { message = "^style", group = "<!-- 5 -->:art: Styling"},
+    { message = "^test", group = "<!-- 6 -->:sunny: Testing"},
     { message = "^chore\\(release\\): prepare for", skip = true},
-    { message = "^chore", group = "Miscellaneous Tasks"},
-    { body = ".*security", group = "Security"},
+    { message = "^chore", group = "<!-- 7 -->:gear: Miscellaneous Tasks"},
+    { body = ".*security", group = "<!-- 8 -->:warning: Security"},
+    { message = ".*", group = "Other", skip = true},
 ]
 
 filter_commits = false
-tag_pattern = "v[0-9]*"
+tag_pattern = "v[0-9]+\\.[0-9]+\\.[0-9]+$"
 skip_tags = ""
 ignore_tags = ""
-date_order = true
-sort_commits = "newest"
+date_order = false
+sort_commits = "oldest"

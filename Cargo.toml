@@ -2,6 +2,12 @@
 name = "git-conventional-commits"
 version = "0.1.0"
 edition = "2021"
+description = "A commit messages validator."
+homepage = "https://github.com/arttet/git-conventional-commits"
+repository = "https://github.com/arttet/git-conventional-commits"
+keywords = ["conventional", "commit"]
+categories = ["command-line-utilities"]
+license = "MIT"
 
 [dependencies]
 pest = "2.4.0"

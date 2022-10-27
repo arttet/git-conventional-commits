@@ -1,0 +1,150 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # https://crontab.guru/
+    # At 12:00 AM UTC, only on Monday
+    - cron: 0 0 * * 1
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: rustfmt
+
+      - name: Run cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  lint:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        toolchain: [stable]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+          components: clippy
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings
+
+      - name: Run cargo doc
+        uses: actions-rs/cargo@v1
+        env:
+          RUSTDOCFLAGS: "-D missing_docs -D rustdoc::missing_doc_code_examples"
+        with:
+          command: doc
+          args: --workspace --all-features --no-deps --document-private-items
+
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        toolchain: [stable]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --tests --all-features
+
+  coverage:
+    runs-on: ubuntu-latest
+    needs: [fmt, lint, build]
+    env:
+      CARGO_INCREMENTAL: 0
+      RUSTFLAGS: -C instrument-coverage
+      LLVM_PROFILE_FILE: coverage-%p-%m.profraw
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: llvm-tools-preview
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install grcov
+        uses: actions-rs/install@v0.1
+        with:
+          crate: grcov
+          version: latest
+          use-tool-cache: true
+
+      - name: Build code coverage
+        run: |
+          cargo test --tests --all-features
+          grcov . --binary-path ./target/debug/ -s . -t html --branch --ignore-not-existing --ignore "*cargo*" -o ./coverage/
+          grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "*cargo*" -o coverage.lcov
+
+      - name: Upload code coverage results to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.lcov
+          flags: unittests
+          name: codecov-umbrella
+          verbose: true
+          fail_ci_if_error: true
+
+      - name: Upload code coverage results to GitHub
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-coverage-report
+          path: coverage

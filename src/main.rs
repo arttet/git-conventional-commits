@@ -1,3 +1,6 @@
+//! git-conventional-commits is a cli tool which validates git commit messages.
+#![allow(missing_docs)]
+
 extern crate pest;
 #[macro_use]
 extern crate pest_derive;
@@ -70,4 +73,13 @@ fn traversal_rules(pairs: pest::iterators::Pairs<Rule>) -> ExitCode {
     }
 
     ExitCode::SUCCESS
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+        let result = 2 + 2;
+        assert_eq!(result, 4);
+    }
 }
