@@ -5,7 +5,6 @@ on:
     branches: [main]
   pull_request:
   schedule:
-    # https://crontab.guru/
     # At 12:00 AM UTC, only on Monday
     - cron: 0 0 * * 1
 
@@ -17,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Install Rust toolchain
@@ -35,32 +34,39 @@ jobs:
           args: --all -- --check
 
   lint:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest]
         toolchain: [stable]
-    runs-on: ${{ matrix.os }}
+
+    permissions:
+      security-events: write
+      # only required for workflows in private repositories
+      # actions: read
+      # contents: read
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ matrix.toolchain }}
-          override: true
           components: clippy
+          override: true
 
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Run cargo clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
+      - name: Install required cargo
+        run: |
+          curl -sSL https://github.com/psastras/sarif-rs/releases/download/clippy-sarif-latest/clippy-sarif-x86_64-unknown-linux-gnu -o clippy-sarif
+          chmod +x clippy-sarif && mv clippy-sarif ~/.cargo/bin/
+          curl -sSL https://github.com/psastras/sarif-rs/releases/download/sarif-fmt-latest/sarif-fmt-x86_64-unknown-linux-gnu -o sarif-fmt
+          chmod +x sarif-fmt && mv sarif-fmt ~/.cargo/bin/
 
       - name: Run cargo doc
         uses: actions-rs/cargo@v1
@@ -70,15 +76,30 @@ jobs:
           command: doc
           args: --workspace --all-features --no-deps --document-private-items
 
+      - name: Run cargo clippy
+        run:
+          cargo clippy
+          --all-features
+          --message-format=json
+          -- -D warnings | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
+        continue-on-error: true
+
+      - name: Upload analysis results to GitHub
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: rust-clippy-results.sarif
+          wait-for-processing: true
+          category: clippy
+
   build:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         toolchain: [stable]
-    runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Install Rust toolchain
@@ -101,22 +122,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-buildx-
+
       - name: Build the Docker image
-        run: make image
+        run: docker build . --file Dockerfile
 
   coverage:
     runs-on: ubuntu-latest
     needs: [fmt, lint, build, docker]
-    env:
-      CARGO_INCREMENTAL: 0
-      RUSTFLAGS: -C instrument-coverage
-      LLVM_PROFILE_FILE: coverage-%p-%m.profraw
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Install Rust toolchain
@@ -131,17 +155,18 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install grcov
-        uses: actions-rs/install@v0.1
-        with:
-          crate: grcov
-          version: latest
-          use-tool-cache: true
+        run: |
+          curl -L https://github.com/mozilla/grcov/releases/latest/download/grcov-x86_64-unknown-linux-gnu.tar.bz2 | tar jxfv -
+          chmod +x grcov && mv grcov ~/.cargo/bin/
 
       - name: Build code coverage
         run: |
-          cargo test --tests --all-features
+          cargo --config 'target.x86_64-unknown-linux-gnu.rustflags = ["-C", "instrument-coverage"]' test --tests --all-features --target=x86_64-unknown-linux-gnu
           grcov . --binary-path ./target/debug/ -s . -t html --branch --ignore-not-existing --ignore "*cargo*" -o ./coverage/
           grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "*cargo*" -o coverage.lcov
+        env:
+          CARGO_INCREMENTAL: 0
+          LLVM_PROFILE_FILE: coverage-%p-%m.profraw
 
       - name: Upload code coverage results to Codecov
         uses: codecov/codecov-action@v3

@@ -2,12 +2,29 @@
 name = "git-conventional-commits"
 version = "0.1.0"
 edition = "2021"
-description = "A commit messages validator."
-homepage = "https://github.com/arttet/git-conventional-commits"
-repository = "https://github.com/arttet/git-conventional-commits"
-keywords = ["conventional", "commit"]
-categories = ["command-line-utilities"]
+
 license = "MIT"
+readme = "README.md"
+homepage = "https://arttet.github.io/git-conventional-commits"
+documentation = "https://docs.rs/git-conventional-commits"
+repository = "https://github.com/arttet/git-conventional-commits"
+keywords = ["git"]
+categories = ["command-line-utilities"]
+description = """
+A commit messages validator.
+"""
+
+include = [
+  "Cargo.toml",
+  "LICENSE",
+  "grammar.pest",
+  "src/**/*",
+]
+
+[package.metadata.docs.rs]
+targets = [
+  "x86_64-unknown-linux-musl",
+]
 
 [dependencies]
 pest = "2.4.0"

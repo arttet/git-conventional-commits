@@ -1,6 +1,9 @@
 FROM rust:1.64.0-alpine AS builder
 
-RUN apk add --update make musl-dev
+ARG VERSION
+ARG COMMIT_HASH
+
+RUN apk add --update musl-dev
 
 WORKDIR /home/src
 
@@ -15,8 +18,10 @@ RUN cargo build --release --locked --target x86_64-unknown-linux-musl
 
 FROM alpine:latest AS cli
 
-ARG GITHUB_PATH=github.com/arttet/git-conventional-commits
-LABEL org.opencontainers.image.source https://${GITHUB_PATH}
+ARG REPO_URL
+ARG DESCRIPTION
+LABEL org.opencontainers.image.source ${REPO_URL}
+LABEL org.opencontainers.image.description ${DESCRIPTION}
 
 WORKDIR /root/
 
