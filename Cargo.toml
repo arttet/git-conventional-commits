@@ -27,5 +27,5 @@ targets = [
 ]
 
 [dependencies]
-pest = "2.4.0"
+pest = "2.5.5"
 pest_derive = "2.4.0"
